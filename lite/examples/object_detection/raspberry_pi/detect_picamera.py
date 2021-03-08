@@ -2,7 +2,8 @@
 # python3
 #
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
-#
+# Copyright 2021 Brian Katona. All Rights Reserved.
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,7 +15,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Example using TF Lite to detect objects with the Raspberry Pi camera."""
+
+# Modified from https://github.com/tensorflow/examples/lite/examples/object_detection/raspberry_pi
+"""Example using TF Lite to detect objects from images in a directory."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -26,16 +29,11 @@ import re
 import time
 import os
 
-from annotation import Annotator
 
 import numpy as np
-#import picamera
 
 from PIL import Image, ImageDraw
 from tflite_runtime.interpreter import Interpreter
-
-CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 480
 
 RESULT_PATH = "positive"
 
@@ -91,27 +89,12 @@ def detect_objects(interpreter, image, threshold):
   return results
 
 
-def annotate_objects(annotator, results, labels):
-  """Draws the bounding box and label for each object in the results."""
-  for obj in results:
-    # Convert the bounding box figures from relative coordinates
-    # to absolute coordinates based on the original resolution
-    ymin, xmin, ymax, xmax = obj['bounding_box']
-    xmin = int(xmin * CAMERA_WIDTH)
-    xmax = int(xmax * CAMERA_WIDTH)
-    ymin = int(ymin * CAMERA_HEIGHT)
-    ymax = int(ymax * CAMERA_HEIGHT)
-
-    # Overlay the box, label, and score on the camera preview
-    annotator.bounding_box([xmin, ymin, xmax, ymax])
-    annotator.text([xmin, ymin],
-                   '%s\n%.2f' % (labels[obj['class_id']], obj['score']))
-
-
 def main():
+  #Create folder for results
   if not os.path.isdir(os.getcwd() + "/" + RESULT_PATH): 
     os.mkdir(os.getcwd() + "/" + RESULT_PATH)
 
+  #Read Arguments
   parser = argparse.ArgumentParser(
       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument(
@@ -125,12 +108,14 @@ def main():
       type=float,
       default=0.4)
   args = parser.parse_args()
-
+  
+  #Set up labels and interpreter
   labels = load_labels(args.labels)
   interpreter = Interpreter(args.model)
   interpreter.allocate_tensors()
   _, input_height, input_width, _ = interpreter.get_input_details()[0]['shape']
   
+  #Iterate through files in working directory, process any JPEG or PNG images
   for file in os.scandir(os.getcwd()):
     if (file.path.endswith(".jpg") or file.path.endswith(".png")):
       print(file.name)
@@ -138,6 +123,8 @@ def main():
       start_time = time.monotonic()
       results = detect_objects(interpreter, image, args.threshold)
       elapsed_ms = (time.monotonic() - start_time) * 1000
+  #Iterate through results. If a person is found, draw a bounding box around the person and save image
+  # in results directory
       for obj in results:
         print(obj)
         if (obj['class_id'] == 0):
@@ -148,16 +135,6 @@ def main():
           draw.rectangle(abs_coordinates, fill=None, outline='yellow', width=2)
           image.save(os.getcwd() + "/" +  RESULT_PATH + "/" +  file.name)
       image.close() 
-        
-  
-
-        #annotator.clear()
-        #annotate_objects(annotator, results, labels)
-        #annotator.text([5, 0], '%.1fms' % (elapsed_ms))
-        #annotator.update()
-
-
-
 
 if __name__ == '__main__':
   main()
