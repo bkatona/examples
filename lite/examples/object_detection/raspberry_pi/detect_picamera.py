@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # python3
 #
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
@@ -27,7 +28,7 @@ import time
 from annotation import Annotator
 
 import numpy as np
-import picamera
+#import picamera
 
 from PIL import Image
 from tflite_runtime.interpreter import Interpreter
