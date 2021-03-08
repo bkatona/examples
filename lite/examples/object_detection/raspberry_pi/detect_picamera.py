@@ -31,7 +31,7 @@ from annotation import Annotator
 import numpy as np
 #import picamera
 
-from PIL import Image
+from PIL import Image, ImageDraw
 from tflite_runtime.interpreter import Interpreter
 
 CAMERA_WIDTH = 640
@@ -109,6 +109,9 @@ def annotate_objects(annotator, results, labels):
 
 
 def main():
+  if not os.path.isdir(os.getcwd() + "/" + RESULT_PATH): 
+    os.mkdir(os.getcwd() + "/" + RESULT_PATH)
+
   parser = argparse.ArgumentParser(
       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument(
@@ -131,14 +134,18 @@ def main():
   for file in os.scandir(os.getcwd()):
     if (file.path.endswith(".jpg") or file.path.endswith(".png")):
       print(file.name)
-      image = Image.open(file.name).convert('RGB').resize(
-            (input_width, input_height), Image.ANTIALIAS)
+      image = Image.open(file.name).convert('RGB').resize((input_width, input_height), Image.ANTIALIAS)
       start_time = time.monotonic()
       results = detect_objects(interpreter, image, args.threshold)
       elapsed_ms = (time.monotonic() - start_time) * 1000
       for obj in results:
         print(obj)
         if (obj['class_id'] == 0):
+          draw = ImageDraw.Draw(image)
+          ymin, xmin, ymax, xmax = obj['bounding_box']
+          im_width, im_height = image.size
+          abs_coordinates = [xmin * im_width, ymin * im_height, xmax * im_width, ymax * im_height]
+          draw.rectangle(abs_coordinates, fill=None, outline='yellow', width=2)
           image.save(os.getcwd() + "/" +  RESULT_PATH + "/" +  file.name)
       image.close() 
         
