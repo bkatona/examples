@@ -24,6 +24,7 @@ import argparse
 import io
 import re
 import time
+import os
 
 from annotation import Annotator
 
@@ -35,6 +36,8 @@ from tflite_runtime.interpreter import Interpreter
 
 CAMERA_WIDTH = 640
 CAMERA_HEIGHT = 480
+
+RESULT_PATH = "positive"
 
 
 def load_labels(path):
@@ -125,16 +128,19 @@ def main():
   interpreter.allocate_tensors()
   _, input_height, input_width, _ = interpreter.get_input_details()[0]['shape']
   
-  for file in os.scandir(os.getcwd):
-    if (file.path.endswith(".jpg") or file.path.endswith(".png"):
-        image = Image.open(file).convert('RGB').resize(
+  for file in os.scandir(os.getcwd()):
+    if (file.path.endswith(".jpg") or file.path.endswith(".png")):
+      print(file.name)
+      image = Image.open(file.name).convert('RGB').resize(
             (input_width, input_height), Image.ANTIALIAS)
-        start_time = time.monotonic()
-        results = detect_objects(interpreter, image, args.threshold)
-        elapsed_ms = (time.monotonic() - start_time) * 1000
-        if (results[i]['class_id'] = 'person'):
-          image.save('/positive/'+ file, "JPEG")
- 
+      start_time = time.monotonic()
+      results = detect_objects(interpreter, image, args.threshold)
+      elapsed_ms = (time.monotonic() - start_time) * 1000
+      for obj in results:
+        print(obj)
+        if (obj['class_id'] == 0):
+          image.save(os.getcwd() + "/" +  RESULT_PATH + "/" +  file.name)
+      image.close() 
         
   
 
