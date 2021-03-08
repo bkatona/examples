@@ -123,32 +123,26 @@ def main():
   interpreter = Interpreter(args.model)
   interpreter.allocate_tensors()
   _, input_height, input_width, _ = interpreter.get_input_details()[0]['shape']
-
-  with picamera.PiCamera(
-      resolution=(CAMERA_WIDTH, CAMERA_HEIGHT), framerate=30) as camera:
-    camera.start_preview()
-    try:
-      stream = io.BytesIO()
-      annotator = Annotator(camera)
-      for _ in camera.capture_continuous(
-          stream, format='jpeg', use_video_port=True):
-        stream.seek(0)
-        image = Image.open(stream).convert('RGB').resize(
+  
+  for file in os.scandir(os.getcwd):
+    if (file.path.endswith(".jpg") or file.path.endswith(".png"):
+        image = Image.open(file).convert('RGB').resize(
             (input_width, input_height), Image.ANTIALIAS)
         start_time = time.monotonic()
         results = detect_objects(interpreter, image, args.threshold)
         elapsed_ms = (time.monotonic() - start_time) * 1000
+        if (results[i]['class_id'] = 'person'):
+          image.save('/positive/'+ file, "JPEG")
+ 
+        
+  
 
-        annotator.clear()
-        annotate_objects(annotator, results, labels)
-        annotator.text([5, 0], '%.1fms' % (elapsed_ms))
-        annotator.update()
+        #annotator.clear()
+        #annotate_objects(annotator, results, labels)
+        #annotator.text([5, 0], '%.1fms' % (elapsed_ms))
+        #annotator.update()
 
-        stream.seek(0)
-        stream.truncate()
 
-    finally:
-      camera.stop_preview()
 
 
 if __name__ == '__main__':
